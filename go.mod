@@ -3,7 +3,7 @@ module github.com/flexer2006/tco
 go 1.26.2
 
 require (
-	github.com/gotd/td v0.143.0
+	github.com/gotd/td v0.144.0
 	github.com/yalue/onnxruntime_go v1.30.0
 	golang.org/x/net v0.53.0
 	golang.org/x/text v0.36.0
@@ -23,7 +23,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gotd/ige v0.2.2 // indirect
 	github.com/gotd/neo v0.1.5 // indirect
-	github.com/klauspost/compress v1.18.5 // indirect
+	github.com/klauspost/compress v1.18.6 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.21 // indirect
 	github.com/ogen-go/ogen v1.20.3 // indirect
@@ -34,7 +34,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.27.1 // indirect
+	go.uber.org/zap v1.28.0 // indirect
 	golang.org/x/crypto v0.50.0 // indirect
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/mod v0.35.0 // indirect
