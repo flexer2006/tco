@@ -6,7 +6,7 @@ require (
 	github.com/gotd/td v0.143.0
 	github.com/yalue/onnxruntime_go v1.30.0
 	golang.org/x/net v0.53.0
-	golang.org/x/text v0.36.0
+	golang.org/x/text v0.37.0
 )
 
 require (
