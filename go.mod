@@ -3,7 +3,7 @@ module github.com/flexer2006/tco
 go 1.26.2
 
 require (
-	github.com/gotd/td v0.143.0
+	github.com/gotd/td v0.145.1
 	github.com/yalue/onnxruntime_go v1.30.0
 	golang.org/x/net v0.55.0
 	golang.org/x/text v0.37.0
