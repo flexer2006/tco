@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -23,12 +22,16 @@ type (
 )
 
 func NewThresholds(dedupSimilarity, clusterSimilarity float64) (Thresholds, error) {
-	if err := validateSimilarity("dedup_similarity", dedupSimilarity); err != nil {
+	err := validateSimilarity("dedup_similarity", dedupSimilarity)
+	if err != nil {
 		return Thresholds{}, err
 	}
-	if err := validateSimilarity("cluster_similarity", clusterSimilarity); err != nil {
+
+	err = validateSimilarity("cluster_similarity", clusterSimilarity)
+	if err != nil {
 		return Thresholds{}, err
 	}
+
 	return Thresholds{dedupSimilarity: dedupSimilarity, clusterSimilarity: clusterSimilarity}, nil
 }
 
@@ -42,21 +45,37 @@ type Counts struct {
 
 func NewCounts(notes, canonicalNotes, duplicateNotes, clusters int) (Counts, error) {
 	if notes < 0 {
-		return Counts{}, fmt.Errorf("notes: must not be negative, got %d", notes)
+		return Counts{}, fmt.Errorf("%w, got %d", ErrNotesNegative, notes)
 	}
+
 	if canonicalNotes < 0 {
-		return Counts{}, fmt.Errorf("canonical_notes: must not be negative, got %d", canonicalNotes)
+		return Counts{}, fmt.Errorf("%w, got %d", ErrCanonicalNotesNegative, canonicalNotes)
 	}
+
 	if duplicateNotes < 0 {
-		return Counts{}, fmt.Errorf("duplicate_notes: must not be negative, got %d", duplicateNotes)
+		return Counts{}, fmt.Errorf("%w, got %d", ErrDuplicateNotesNegative, duplicateNotes)
 	}
+
 	if clusters < 0 {
-		return Counts{}, fmt.Errorf("clusters: must not be negative, got %d", clusters)
+		return Counts{}, fmt.Errorf("%w, got %d", ErrClustersNegative, clusters)
 	}
+
 	if canonicalNotes+duplicateNotes != notes {
-		return Counts{}, fmt.Errorf("notes: expected canonical_notes + duplicate_notes to equal notes (%d + %d != %d)", canonicalNotes, duplicateNotes, notes)
+		return Counts{}, fmt.Errorf(
+			"%w (%d + %d != %d)",
+			ErrNotesCountMismatch,
+			canonicalNotes,
+			duplicateNotes,
+			notes,
+		)
 	}
-	return Counts{notes: notes, canonicalNotes: canonicalNotes, duplicateNotes: duplicateNotes, clusters: clusters}, nil
+
+	return Counts{
+		notes:          notes,
+		canonicalNotes: canonicalNotes,
+		duplicateNotes: duplicateNotes,
+		clusters:       clusters,
+	}, nil
 }
 
 func (c Counts) Notes() int          { return c.notes }
@@ -70,15 +89,20 @@ type Timestamps struct {
 }
 
 func NewTimestamps(startedAtUTC, finishedAtUTC time.Time) (Timestamps, error) {
-	if err := validateUTC("started_at_utc", startedAtUTC); err != nil {
+	err := validateUTC("started_at_utc", startedAtUTC)
+	if err != nil {
 		return Timestamps{}, err
 	}
-	if err := validateUTC("finished_at_utc", finishedAtUTC); err != nil {
+
+	err = validateUTC("finished_at_utc", finishedAtUTC)
+	if err != nil {
 		return Timestamps{}, err
 	}
+
 	if finishedAtUTC.Before(startedAtUTC) {
-		return Timestamps{}, errors.New("finished_at_utc must not be before started_at_utc")
+		return Timestamps{}, ErrFinishedBeforeStarted
 	}
+
 	return Timestamps{startedAtUTC: startedAtUTC.UTC(), finishedAtUTC: finishedAtUTC.UTC()}, nil
 }
 
@@ -86,13 +110,24 @@ func (t Timestamps) StartedAtUTC() time.Time  { return t.startedAtUTC }
 func (t Timestamps) FinishedAtUTC() time.Time { return t.finishedAtUTC }
 func (t Timestamps) Clone() Timestamps        { return t }
 
-func NewRunMetadata(runID string, runMode ModeRun, batchMode ModeBatch, batchSize int, thresholds Thresholds, counts Counts, timestamps Timestamps) (RunMetadata, error) {
+func NewRunMetadata(
+	runID string,
+	runMode ModeRun,
+	batchMode ModeBatch,
+	batchSize int,
+	thresholds Thresholds,
+	counts Counts,
+	timestamps Timestamps,
+) (RunMetadata, error) {
 	if strings.TrimSpace(runID) == "" {
-		return RunMetadata{}, errors.New("run_id must not be empty")
+		return RunMetadata{}, ErrRunIDEmpty
 	}
-	if _, err := NewPolicy(runMode, batchMode, batchSize); err != nil {
+
+	_, err := NewPolicy(runMode, batchMode, batchSize)
+	if err != nil {
 		return RunMetadata{}, err
 	}
+
 	return RunMetadata{
 		runID:      runID,
 		runMode:    runMode,

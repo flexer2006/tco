@@ -3,7 +3,6 @@ package domain
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -12,51 +11,80 @@ import (
 )
 
 type note struct {
-	id, duplicateOf                                       NoteID
 	createdAt, updatedAt                                  time.Time
 	tags                                                  []string
+	id, duplicateOf                                       NoteID
 	sourceChat, body, hash, embeddingID, clusterID, title string
 	sourceMsgID                                           int
 }
 
-func newNote(id NoteID, sourceChat string, sourceMsgID int, title, body, embeddingID, clusterID string, tags []string, createdAt, updatedAt time.Time, duplicateOf NoteID) (note, error) {
+func newNote(
+	id NoteID,
+	sourceChat string,
+	sourceMsgID int,
+	title, body, embeddingID, clusterID string,
+	tags []string,
+	createdAt, updatedAt time.Time,
+	duplicateOf NoteID,
+) (note, error) {
 	expectedID, err := NewNoteID(sourceChat, sourceMsgID)
 	if err != nil {
 		return note{}, err
 	}
+
 	if id != expectedID {
-		return note{}, fmt.Errorf("id: expected %q for %s/%d, got %q", expectedID, sourceChat, sourceMsgID, id)
+		return note{}, fmt.Errorf(
+			"%w: expected %q for %s/%d, got %q",
+			ErrNoteIDMismatch,
+			expectedID,
+			sourceChat,
+			sourceMsgID,
+			id,
+		)
 	}
+
 	if strings.TrimSpace(title) == "" {
-		return note{}, errors.New("title must not be empty")
+		return note{}, ErrTitleEmpty
 	}
+
 	if strings.TrimSpace(body) == "" {
-		return note{}, errors.New("body must not be empty")
+		return note{}, ErrBodyEmpty
 	}
+
 	if strings.Contains(body, "\r") {
-		return note{}, errors.New("body must not contain carriage returns")
+		return note{}, ErrBodyCarriageReturn
 	}
+
 	if strings.HasSuffix(body, "\n") {
-		return note{}, errors.New("body must not end with a newline")
+		return note{}, ErrBodyTrailingNewline
 	}
+
 	if strings.TrimSpace(embeddingID) == "" {
-		return note{}, errors.New("embedding id must not be empty")
+		return note{}, ErrEmbeddingIDEmpty
 	}
+
 	if strings.TrimSpace(clusterID) == "" {
-		return note{}, errors.New("cluster id must not be empty")
+		return note{}, ErrClusterIDEmpty
 	}
-	if err := validateNoteUTC("created_at", createdAt); err != nil {
+
+	err = validateNoteUTC("created_at", createdAt)
+	if err != nil {
 		return note{}, err
 	}
-	if err := validateNoteUTC("updated_at", updatedAt); err != nil {
+
+	err = validateNoteUTC("updated_at", updatedAt)
+	if err != nil {
 		return note{}, err
 	}
+
 	if updatedAt.Before(createdAt) {
-		return note{}, errors.New("updated_at must not be before created_at")
+		return note{}, ErrUpdatedBeforeCreated
 	}
+
 	if duplicateOf != "" && duplicateOf == id {
-		return note{}, errors.New("duplicate_of must not equal id")
+		return note{}, ErrDuplicateOfEqualsID
 	}
+
 	return note{
 		id:          id,
 		sourceChat:  sourceChat,
@@ -87,101 +115,137 @@ func (n note) updatedAtValue() time.Time { return n.updatedAt }
 func (n note) duplicateOfValue() NoteID  { return n.duplicateOf }
 
 func (n note) markdown() string {
-	var b strings.Builder
-	b.Grow(len(n.body) + len(n.title) + len(n.hash) + len(n.tags)*8 + 256)
-	b.WriteString("---\n")
-	b.WriteString("id: ")
-	b.WriteString(n.id.String())
-	b.WriteByte('\n')
-	b.WriteString("source_chat: ")
-	b.WriteString(n.sourceChat)
-	b.WriteByte('\n')
-	b.WriteString("source_msg_id: ")
-	b.WriteString(strconv.Itoa(n.sourceMsgID))
-	b.WriteByte('\n')
-	b.WriteString("title: ")
-	b.WriteString(n.title)
-	b.WriteByte('\n')
-	b.WriteString("body: |-\n")
-	b.WriteString(renderLiteralBlock(n.body))
-	b.WriteByte('\n')
-	b.WriteString("hash: ")
-	b.WriteString(n.hash)
-	b.WriteByte('\n')
-	b.WriteString("embedding_id: ")
-	b.WriteString(n.embeddingID)
-	b.WriteByte('\n')
-	b.WriteString("cluster_id: ")
-	b.WriteString(n.clusterID)
-	b.WriteByte('\n')
-	b.WriteString("tags: ")
-	b.WriteString(renderTags(n.tags))
-	b.WriteByte('\n')
-	b.WriteString("created_at: ")
-	b.WriteString(n.createdAt.Format(time.RFC3339))
-	b.WriteByte('\n')
-	b.WriteString("updated_at: ")
-	b.WriteString(n.updatedAt.Format(time.RFC3339))
-	b.WriteByte('\n')
-	b.WriteString("duplicate_of: ")
-	b.WriteString(strconv.Quote(n.duplicateOf.String()))
-	b.WriteByte('\n')
-	b.WriteString("---\n")
-	b.WriteString(n.body)
-	return b.String()
+	const markdownExtraCapacity = 256
+
+	var builder strings.Builder
+	builder.Grow(len(n.body) + len(n.title) + len(n.hash) + len(n.tags)*8 + markdownExtraCapacity)
+	builder.WriteString("---\n")
+	builder.WriteString("id: ")
+	builder.WriteString(n.id.String())
+	builder.WriteByte('\n')
+	builder.WriteString("source_chat: ")
+	builder.WriteString(strconv.Quote(n.sourceChat))
+	builder.WriteByte('\n')
+	builder.WriteString("source_msg_id: ")
+	builder.WriteString(strconv.Itoa(n.sourceMsgID))
+	builder.WriteByte('\n')
+	builder.WriteString("title: ")
+	builder.WriteString(strconv.Quote(n.title))
+	builder.WriteByte('\n')
+	builder.WriteString("body: |-\n")
+	builder.WriteString(renderLiteralBlock(n.body))
+	builder.WriteByte('\n')
+	builder.WriteString("hash: ")
+	builder.WriteString(n.hash)
+	builder.WriteByte('\n')
+	builder.WriteString("embedding_id: ")
+	builder.WriteString(n.embeddingID)
+	builder.WriteByte('\n')
+	builder.WriteString("cluster_id: ")
+	builder.WriteString(n.clusterID)
+	builder.WriteByte('\n')
+	builder.WriteString("tags: ")
+	builder.WriteString(renderTags(n.tags))
+	builder.WriteByte('\n')
+	builder.WriteString("created_at: ")
+	builder.WriteString(n.createdAt.Format(time.RFC3339))
+	builder.WriteByte('\n')
+	builder.WriteString("updated_at: ")
+	builder.WriteString(n.updatedAt.Format(time.RFC3339))
+	builder.WriteByte('\n')
+	builder.WriteString("duplicate_of: ")
+	builder.WriteString(strconv.Quote(n.duplicateOf.String()))
+	builder.WriteByte('\n')
+	builder.WriteString("---\n")
+	builder.WriteString(n.body)
+
+	return builder.String()
 }
 
-func RenderNoteMarkdown(id NoteID, sourceChat string, sourceMsgID int, title, body, embeddingID, clusterID string, tags []string, createdAt, updatedAt time.Time, duplicateOf NoteID) (string, error) {
-	noteValue, err := newNote(id, sourceChat, sourceMsgID, title, body, embeddingID, clusterID, tags, createdAt, updatedAt, duplicateOf)
+func RenderNoteMarkdown(
+	id NoteID,
+	sourceChat string,
+	sourceMsgID int,
+	title, body, embeddingID, clusterID string,
+	tags []string,
+	createdAt, updatedAt time.Time,
+	duplicateOf NoteID,
+) (string, error) {
+	noteValue, err := newNote(
+		id,
+		sourceChat,
+		sourceMsgID,
+		title,
+		body,
+		embeddingID,
+		clusterID,
+		tags,
+		createdAt,
+		updatedAt,
+		duplicateOf,
+	)
 	if err != nil {
 		return "", err
 	}
+
 	return noteValue.markdown(), nil
 }
 
 func validateNoteUTC(field string, value time.Time) error {
 	if value.IsZero() {
-		return fmt.Errorf("%s must not be zero", field)
+		return fmt.Errorf("%s %w", field, ErrTimeMustNotBeZero)
 	}
+
 	if value.Location() != time.UTC {
-		return fmt.Errorf("%s must be UTC", field)
+		return fmt.Errorf("%s %w", field, ErrTimeMustBeUTC)
 	}
+
 	return nil
 }
 
 func hashRenderedBody(body string) string {
 	sum := sha256.Sum256([]byte(body))
+
 	return hex.EncodeToString(sum[:])
 }
 
 func renderLiteralBlock(body string) string {
-	var b strings.Builder
+	var builder strings.Builder
+
 	firstLine := true
 	for line := range strings.SplitSeq(body, "\n") {
 		if !firstLine {
-			b.WriteByte('\n')
+			builder.WriteByte('\n')
 		}
+
 		firstLine = false
+
 		if line != "" {
-			b.WriteString("  ")
-			b.WriteString(line)
+			builder.WriteString("  ")
+			builder.WriteString(line)
 		}
 	}
-	return b.String()
+
+	return builder.String()
 }
 
 func renderTags(tags []string) string {
 	if len(tags) == 0 {
 		return "[]"
 	}
-	var b strings.Builder
-	b.WriteByte('[')
+
+	var builder strings.Builder
+	builder.WriteByte('[')
+
 	for i, tag := range tags {
 		if i > 0 {
-			b.WriteString(", ")
+			builder.WriteString(", ")
 		}
-		b.WriteString(strconv.Quote(tag))
+
+		builder.WriteString(strconv.Quote(tag))
 	}
-	b.WriteByte(']')
-	return b.String()
+
+	builder.WriteByte(']')
+
+	return builder.String()
 }

@@ -1,21 +1,21 @@
 package domain
 
 import (
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
 	"time"
 )
 
+const decimalBase = 10
+
 type (
 	NoteRecord struct {
-		id                                                    NoteID
 		createdAt, updatedAt                                  time.Time
 		tags                                                  []string
 		embedding                                             Vector
+		id, duplicateOf                                       NoteID
 		sourceChat, title, body, hash, embeddingID, clusterID string
-		duplicateOf                                           NoteID
 		sourceMsgID                                           int
 	}
 	ClusterRecord struct {
@@ -26,20 +26,45 @@ type (
 	}
 )
 
-func NewNoteRecord(id NoteID, sourceChat string, sourceMsgID int, title, body, embeddingID string, embeddingValue Vector, clusterID string, tags []string, createdAt, updatedAt time.Time, duplicateOf NoteID) (NoteRecord, error) {
-	validated, err := newNote(id, sourceChat, sourceMsgID, title, body, embeddingID, clusterID, tags, createdAt, updatedAt, duplicateOf)
+func NewNoteRecord(
+	id NoteID,
+	sourceChat string,
+	sourceMsgID int,
+	title, body, embeddingID string,
+	embeddingValue Vector,
+	clusterID string,
+	tags []string,
+	createdAt, updatedAt time.Time,
+	duplicateOf NoteID,
+) (NoteRecord, error) {
+	validated, err := newNote(
+		id,
+		sourceChat,
+		sourceMsgID,
+		title,
+		body,
+		embeddingID,
+		clusterID,
+		tags,
+		createdAt,
+		updatedAt,
+		duplicateOf,
+	)
 	if err != nil {
 		return NoteRecord{}, err
 	}
+
 	if embeddingValue.Dimension() == 0 {
-		return NoteRecord{}, errors.New("embedding must not be empty")
+		return NoteRecord{}, ErrEmbeddingEmpty
 	}
+
 	tagCopy := validated.tagsValue()
 	if len(tagCopy) == 0 {
 		tagCopy = []string{}
 	} else {
 		slices.Sort(tagCopy)
 	}
+
 	return NoteRecord{
 		id:          validated.idValue(),
 		sourceChat:  validated.sourceChatValue(),
@@ -72,25 +97,40 @@ func (r NoteRecord) UpdatedAt() time.Time { return r.updatedAt }
 func (r NoteRecord) DuplicateOf() NoteID  { return r.duplicateOf }
 func (r NoteRecord) Clone() NoteRecord {
 	clone := r
+
 	clone.tags = slices.Clone(r.tags)
 	if len(clone.tags) == 0 {
 		clone.tags = []string{}
 	}
+
 	return clone
 }
 
-func NewClusterRecord(id, name, slug string, centroid Vector, noteIDs []NoteID, createdAt, updatedAt time.Time) (ClusterRecord, error) {
+func NewClusterRecord(
+	id, name, slug string,
+	centroid Vector,
+	noteIDs []NoteID,
+	createdAt, updatedAt time.Time,
+) (ClusterRecord, error) {
 	noteIDCopy := slices.Clone(noteIDs)
 	slices.SortFunc(noteIDCopy, compareNoteIDs)
+
 	for i := 1; i < len(noteIDCopy); i++ {
 		if noteIDCopy[i-1] == noteIDCopy[i] {
-			return ClusterRecord{}, fmt.Errorf("note_ids[%d]: duplicate note id %q", i, noteIDCopy[i])
+			return ClusterRecord{}, fmt.Errorf(
+				"note_ids[%d]: %w %q",
+				i,
+				ErrDuplicateNoteIDInCluster,
+				noteIDCopy[i],
+			)
 		}
 	}
+
 	validated, err := newCluster(id, name, slug, centroid, noteIDCopy, createdAt, updatedAt)
 	if err != nil {
 		return ClusterRecord{}, err
 	}
+
 	return ClusterRecord{
 		id:        validated.idValue(),
 		name:      validated.nameValue(),
@@ -112,46 +152,56 @@ func (r ClusterRecord) UpdatedAt() time.Time { return r.updatedAt }
 func (r ClusterRecord) Clone() ClusterRecord {
 	clone := r
 	clone.noteIDs = slices.Clone(r.noteIDs)
+
 	return clone
 }
 
-func compareNoteIDs(a, b NoteID) int {
-	aID, aOK := noteSortKey(a)
-	bID, bOK := noteSortKey(b)
-	if aOK && bOK {
+func compareNoteIDs(left, right NoteID) int {
+	leftID, leftOK := noteSortKey(left)
+
+	rightID, rightOK := noteSortKey(right)
+	if leftOK && rightOK {
 		switch {
-		case aID < bID:
+		case leftID < rightID:
 			return -1
-		case aID > bID:
+		case leftID > rightID:
 			return 1
 		}
 	}
-	return strings.Compare(a.String(), b.String())
+
+	return strings.Compare(left.String(), right.String())
 }
 
 func noteSortKey(noteID NoteID) (int, bool) {
 	text := noteID.String()
+
 	idx := strings.LastIndex(text, ":")
 	if idx < 0 || idx == len(text)-1 {
 		return 0, false
 	}
+
 	value, err := parsePositiveInt(text[idx+1:])
 	if err != nil {
 		return 0, false
 	}
+
 	return value, true
 }
 
 func parsePositiveInt(text string) (int, error) {
 	value := 0
+
 	for _, r := range text {
 		if r < '0' || r > '9' {
-			return 0, fmt.Errorf("invalid integer %q", text)
+			return 0, fmt.Errorf("%w %q", ErrInvalidInteger, text)
 		}
-		value = value*10 + int(r-'0')
+
+		value = value*decimalBase + int(r-'0')
 	}
+
 	if value <= 0 {
-		return 0, fmt.Errorf("invalid integer %q", text)
+		return 0, fmt.Errorf("%w %q", ErrInvalidInteger, text)
 	}
+
 	return value, nil
 }

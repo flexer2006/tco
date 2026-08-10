@@ -8,15 +8,17 @@ import (
 	"github.com/flexer2006/tco/internal/bootstrap"
 )
 
-var (
-	collectorServe            = bootstrap.Serve
-	collectorStderr io.Writer = os.Stderr
-	collectorExit             = os.Exit
-)
-
 func main() {
-	if err := collectorServe(); err != nil {
-		_, _ = fmt.Fprintln(collectorStderr, err)
-		collectorExit(1)
+	os.Exit(run(bootstrap.Serve, os.Stderr))
+}
+
+func run(serve func() error, stderr io.Writer) int {
+	err := serve()
+	if err != nil {
+		_, _ = fmt.Fprintln(stderr, err)
+
+		return 1
 	}
+
+	return 0
 }

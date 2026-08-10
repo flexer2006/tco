@@ -1,0 +1,323 @@
+version: "2"
+
+run:
+  tests: true
+  timeout: 5m
+
+linters:
+  default: none
+  enable:
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    - containedctx
+    - contextcheck
+    - copyloopvar
+    - cyclop
+    - decorder
+    - depguard
+    - dogsled
+    - dupl
+    - dupword
+    - durationcheck
+    - embeddedstructfieldcheck
+    - err113
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+    - exhaustruct
+    - exptostd
+    - fatcontext
+    - forbidigo
+    - forcetypeassert
+    - funcorder
+    - funlen
+    - gocheckcompilerdirectives
+    - gochecknoglobals
+    - gochecknoinits
+    - gochecksumtype
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godoclint
+    - godot
+    - godox
+    - goheader
+    - gomoddirectives
+    - gomodguard_v2
+    - goprintffuncname
+    - gosec
+    - gosmopolitan
+    - govet
+    - grouper
+    - iface
+    - importas
+    - inamedparam
+    - ineffassign
+    - interfacebloat
+    - intrange
+    - iotamixing
+    - ireturn
+    - lll
+    - loggercheck
+    - maintidx
+    - makezero
+    - mirror
+    - misspell
+    - mnd
+    - modernize
+    - musttag
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnesserr
+    - nilnil
+    - nlreturn
+    - noctx
+    - noinlineerr
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - paralleltest
+    - perfsprint
+    - prealloc
+    - predeclared
+    - reassign
+    - recvcheck
+    - revive
+    - rowserrcheck
+    - sloglint
+    - spancheck
+    - sqlclosecheck
+    - staticcheck
+    - tagalign
+    - tagliatelle
+    - testableexamples
+    - testifylint
+    - testpackage
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - usetesting
+    - varnamelen
+    - wastedassign
+    - whitespace
+    - wrapcheck
+    - wsl_v5
+  settings:
+    lll:
+      line-length: 120
+    depguard:
+      rules:
+        main:
+          deny:
+            - pkg: github.com/sirupsen/logrus
+            - pkg: github.com/pkg/errors
+    tagalign:
+      align: false
+    tagliatelle:
+      case:
+        rules:
+          json: snake
+          yaml: snake
+    funlen:
+      lines: 100
+      statements: 60
+    cyclop:
+      max-complexity: 20
+    gocognit:
+      min-complexity: 40
+    gocyclo:
+      min-complexity: 20
+    maintidx:
+      under: 15
+    varnamelen:
+      min-name-length: 2
+      ignore-names:
+        - err
+        - ok
+        - id
+        - n
+        - i
+        - j
+        - w
+        - r
+        - t
+        - mu
+    dupl:
+      threshold: 200
+    mnd:
+      ignored-functions:
+        - time.Duration
+        - make
+        - strconv.FormatInt
+        - strconv.ParseInt
+        - strconv.Atoi
+      ignored-numbers:
+        - "0"
+        - "1"
+        - "2"
+        - "3"
+        - "4"
+        - "8"
+        - "10"
+        - "16"
+        - "32"
+        - "64"
+        - "100"
+        - "384"
+    exhaustruct:
+      exclude:
+        - "^net/http\\..*"
+        - "^net/http/httptest\\..*"
+        - "^context\\..*"
+        - "^time\\..*"
+        - "^sync\\..*"
+        - "^os\\..*"
+        - "^github.com/gotd/td/.*"
+        - "^github.com/yalue/onnxruntime_go\\..*"
+        - "^golang.org/x/net/proxy\\..*"
+        - "^github.com/flexer2006/tco/internal/adapters/embedding\\.encoderOptions$"
+        - "^github.com/flexer2006/tco/internal/adapters/embedding\\.ProfiledRuntime$"
+        - "^github.com/flexer2006/tco/internal/adapters/embedding\\.sharedProfiledSessionRunner$"
+        - "^github.com/flexer2006/tco/internal/adapters/telegram\\.LiveAuthGateway$"
+        - "^github.com/flexer2006/tco/internal/adapters/telegram\\.LiveSource$"
+        - "^github.com/flexer2006/tco/internal/adapters/telegram\\.liveTarget$"
+        - "^github.com/flexer2006/tco/internal/adapters/telegram\\.mappedMessage$"
+        - "^github.com/flexer2006/tco/internal/application/onboarding\\.Onboarding$"
+        - "^github.com/flexer2006/tco/internal/application/onboarding\\.OperationError$"
+        - "^github.com/flexer2006/tco/internal/application/onboarding\\.sessionPersistenceError$"
+        - "^github.com/flexer2006/tco/internal/application/pipeline\\.Orchestrator$"
+        - "^github.com/flexer2006/tco/internal/application/pipeline\\.RunOutcome$"
+        - "^github.com/flexer2006/tco/internal/application/pipeline\\.candidateState$"
+        - "^github.com/flexer2006/tco/internal/application/pipeline\\.dedupClusterNote$"
+        - "^github.com/flexer2006/tco/internal/application/control\\.Service$"
+        - "^github.com/flexer2006/tco/internal/application/control\\.Status$"
+        - "^github.com/flexer2006/tco/internal/application/control\\.Readiness$"
+        - "^github.com/flexer2006/tco/internal/domain\\.Snapshot$"
+        - "^github.com/flexer2006/tco/internal/domain\\.Readiness$"
+        - "^github.com/flexer2006/tco/internal/ports\\.ProjectionStats$"
+        - "^github.com/flexer2006/tco/internal/ports\\.EmbeddingMetadata$"
+    exhaustive:
+      default-signifies-exhaustive: true
+    wrapcheck:
+      ignore-package-globs:
+        - "github.com/flexer2006/tco/*"
+      extra-ignore-sigs:
+        - "func (context.Context).Err() error"
+        - "func errors.Join("
+        - "func strconv.Atoi("
+        - "func strconv.ParseInt("
+        - "func strconv.ParseBool("
+        - "func strconv.ParseFloat("
+        - "func os.MkdirAll("
+        - "func os.ReadFile("
+        - "func os.WriteFile("
+        - "func os.Remove("
+        - "func os.RemoveAll("
+        - "func os.Stat("
+        - "func os.Lstat("
+        - "func os.Open("
+        - "func os.OpenFile("
+        - "func os.Create("
+        - "func os.CreateTemp("
+        - "func os.Rename("
+        - "func filepath.Abs("
+        - "func filepath.Rel("
+        - "func hex.DecodeString("
+        - "func net.SplitHostPort("
+        - "func json.Marshal("
+        - "func json.Unmarshal("
+    ireturn:
+      allow:
+        - error
+        - generic
+        - anon
+        - stdlib
+        - github.com/flexer2006/tco/internal/ports
+        - github.com/gotd/td/tg
+        - github.com/flexer2006/tco/internal/adapters/telegram
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    errcheck:
+      check-type-assertions: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters:
+          - exhaustruct
+          - funlen
+          - goconst
+          - maintidx
+          - dupl
+          - cyclop
+          - gocyclo
+          - gocognit
+          - varnamelen
+          - mnd
+          - err113
+          - wrapcheck
+          - wsl_v5
+          - lll
+          - nlreturn
+          - noinlineerr
+          - testpackage
+          - paralleltest
+          - godot
+          - godox
+          - funlen
+      - path: internal/ports/
+        linters:
+          - ireturn
+      - path: internal/bootstrap/
+        linters:
+          - ireturn
+          - wrapcheck
+          - exhaustruct
+          - wsl_v5
+          - gochecknoglobals
+          - nlreturn
+          - varnamelen
+      - path: internal/application/application\.go
+        linters:
+          - gochecknoglobals
+      - path: internal/adapters/httpcontrol/
+        linters:
+          - exhaustruct
+      - text: "G124:"
+        linters:
+          - gosec
+        path: internal/adapters/httpcontrol/
+      - path: internal/adapters/telegram/
+        linters:
+          - gochecknoglobals
+      - path: internal/adapters/
+        linters:
+          - gochecknoglobals
+
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/flexer2006/tco)
+      custom-order: true

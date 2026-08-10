@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -11,6 +10,7 @@ import (
 
 const clusterUntitledSlug = "cluster-untitled"
 
+//nolint:gochecknoglobals // immutable transliteration table shared by slug helpers
 var cyrillicTransliteration = map[rune]string{
 	'а': "a",
 	'б': "b",
@@ -54,34 +54,58 @@ type cluster struct {
 	id, name, slug       string
 }
 
-func newCluster(id, name string, slug string, centroid Vector, noteIDs []NoteID, createdAt, updatedAt time.Time) (cluster, error) {
+func newCluster(
+	id, name string,
+	slug string,
+	centroid Vector,
+	noteIDs []NoteID,
+	createdAt, updatedAt time.Time,
+) (cluster, error) {
 	if strings.TrimSpace(id) == "" {
-		return cluster{}, errors.New("id must not be empty")
+		return cluster{}, ErrIDEmpty
 	}
+
 	if strings.TrimSpace(name) == "" {
-		return cluster{}, errors.New("name must not be empty")
+		return cluster{}, ErrNameEmpty
 	}
+
 	if centroid.Dimension() == 0 {
-		return cluster{}, errors.New("centroid must not be empty")
+		return cluster{}, ErrCentroidEmpty
 	}
+
 	if len(noteIDs) == 0 {
-		return cluster{}, errors.New("note_ids must not be empty")
+		return cluster{}, ErrNoteIDsEmpty
 	}
+
 	for i, noteID := range noteIDs {
 		if strings.TrimSpace(noteID.String()) == "" {
-			return cluster{}, fmt.Errorf("note_ids[%d]: must not be empty", i)
+			return cluster{}, fmt.Errorf("note_ids[%d]: %w", i, ErrNoteIDEmpty)
 		}
 	}
-	if err := validateClusterUTC("created_at", createdAt); err != nil {
+
+	err := validateClusterUTC("created_at", createdAt)
+	if err != nil {
 		return cluster{}, err
 	}
-	if err := validateClusterUTC("updated_at", updatedAt); err != nil {
+
+	err = validateClusterUTC("updated_at", updatedAt)
+	if err != nil {
 		return cluster{}, err
 	}
-	canonicalSlug := Slugify(name)
-	if slug != "" && slug != canonicalSlug {
-		return cluster{}, fmt.Errorf("slug: expected %q for %q, got %q", canonicalSlug, name, slug)
+
+	canonicalSlug := strings.TrimSpace(slug)
+	if canonicalSlug == "" {
+		canonicalSlug = Slugify(name)
 	}
+
+	if canonicalSlug == "" {
+		return cluster{}, ErrSlugEmpty
+	}
+
+	if strings.ContainsAny(canonicalSlug, `/\\`) {
+		return cluster{}, ErrSlugPathSeparators
+	}
+
 	return cluster{
 		id:        id,
 		name:      name,
@@ -100,11 +124,13 @@ func (c cluster) centroidValue() Vector { return c.centroid }
 
 func validateClusterUTC(field string, value time.Time) error {
 	if value.IsZero() {
-		return fmt.Errorf("%s must not be zero", field)
+		return fmt.Errorf("%s %w", field, ErrTimeMustNotBeZero)
 	}
+
 	if value.Location() != time.UTC {
-		return fmt.Errorf("%s must be UTC", field)
+		return fmt.Errorf("%s %w", field, ErrTimeMustBeUTC)
 	}
+
 	return nil
 }
 
@@ -113,9 +139,12 @@ func Slugify(name string) string {
 	if trimmed == "" {
 		return clusterUntitledSlug
 	}
-	var b strings.Builder
-	b.Grow(len(trimmed))
+
+	var builder strings.Builder
+	builder.Grow(len(trimmed))
+
 	lastWasHyphen := true
+
 	for _, r := range trimmed {
 		switch {
 		case isCyrillic(r):
@@ -123,22 +152,28 @@ func Slugify(name string) string {
 			if transliterated == "" {
 				continue
 			}
-			b.WriteString(transliterated)
+
+			builder.WriteString(transliterated)
+
 			lastWasHyphen = false
 		case isASCIIAlphaNumeric(r):
-			b.WriteRune(unicode.ToLower(r))
+			builder.WriteRune(unicode.ToLower(r))
+
 			lastWasHyphen = false
 		default:
-			if !lastWasHyphen && b.Len() > 0 {
-				b.WriteByte('-')
+			if !lastWasHyphen && builder.Len() > 0 {
+				builder.WriteByte('-')
+
 				lastWasHyphen = true
 			}
 		}
 	}
-	slug := strings.Trim(b.String(), "-")
+
+	slug := strings.Trim(builder.String(), "-")
 	if slug == "" {
 		return clusterUntitledSlug
 	}
+
 	return slug
 }
 

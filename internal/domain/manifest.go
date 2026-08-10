@@ -20,9 +20,19 @@ type Manifest struct {
 	schemaVersion, vectorDimension                      int
 }
 
-func NewManifestWithModelProfile(schemaVersion int, modelID, modelHash, modelProfile string, vectorDimension int, normalizationRule string, lastRunUTC time.Time, notes []NoteRecord, clusters []ClusterRecord, runMetadata RunMetadata) (Manifest, error) {
+func NewManifestWithModelProfile(
+	schemaVersion int,
+	modelID, modelHash, modelProfile string,
+	vectorDimension int,
+	normalizationRule string,
+	lastRunUTC time.Time,
+	notes []NoteRecord,
+	clusters []ClusterRecord,
+	runMetadata RunMetadata,
+) (Manifest, error) {
 	canonicalNotes := canonicalizeNoteRecords(notes)
 	canonicalClusters := canonicalizeClusterRecords(clusters)
+
 	manifestValue := Manifest{
 		schemaVersion:     schemaVersion,
 		modelID:           modelID,
@@ -35,9 +45,12 @@ func NewManifestWithModelProfile(schemaVersion int, modelID, modelHash, modelPro
 		clusters:          canonicalClusters,
 		runMetadata:       runMetadata.Clone(),
 	}
-	if err := Validate(manifestValue); err != nil {
+
+	err := Validate(manifestValue)
+	if err != nil {
 		return Manifest{}, err
 	}
+
 	return manifestValue, nil
 }
 
@@ -48,6 +61,7 @@ func (m Manifest) ModelProfile() string { return m.modelProfile }
 func (m Manifest) NormalizationRule() string {
 	return m.normalizationRule
 }
+
 func (m Manifest) VectorDimension() int {
 	return m.vectorDimension
 }
@@ -56,12 +70,15 @@ func (m Manifest) Notes() []NoteRecord {
 	if len(m.notes) == 0 {
 		return []NoteRecord{}
 	}
+
 	return slices.Clone(m.notes)
 }
+
 func (m Manifest) Clusters() []ClusterRecord {
 	if len(m.clusters) == 0 {
 		return []ClusterRecord{}
 	}
+
 	return slices.Clone(m.clusters)
 }
 func (m Manifest) RunMetadata() RunMetadata { return m.runMetadata }
@@ -85,10 +102,12 @@ func canonicalizeNoteRecords(records []NoteRecord) []NoteRecord {
 	if len(records) == 0 {
 		return []NoteRecord{}
 	}
+
 	cloned := cloneNoteRecords(records)
 	slices.SortFunc(cloned, func(a, b NoteRecord) int {
 		return cmp.Compare(a.ID().String(), b.ID().String())
 	})
+
 	return cloned
 }
 
@@ -96,10 +115,12 @@ func canonicalizeClusterRecords(records []ClusterRecord) []ClusterRecord {
 	if len(records) == 0 {
 		return []ClusterRecord{}
 	}
+
 	cloned := cloneClusterRecords(records)
 	slices.SortFunc(cloned, func(a, b ClusterRecord) int {
 		return cmp.Compare(a.ID(), b.ID())
 	})
+
 	return cloned
 }
 
@@ -107,10 +128,12 @@ func cloneNoteRecords(records []NoteRecord) []NoteRecord {
 	if len(records) == 0 {
 		return []NoteRecord{}
 	}
+
 	cloned := make([]NoteRecord, len(records))
 	for i, record := range records {
 		cloned[i] = record.Clone()
 	}
+
 	return cloned
 }
 
@@ -118,9 +141,11 @@ func cloneClusterRecords(records []ClusterRecord) []ClusterRecord {
 	if len(records) == 0 {
 		return []ClusterRecord{}
 	}
+
 	cloned := make([]ClusterRecord, len(records))
 	for i, record := range records {
 		cloned[i] = record.Clone()
 	}
+
 	return cloned
 }
