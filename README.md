@@ -11,7 +11,7 @@ tco is a local Go service. It reads Telegram chat history, embeds messages with 
 | Item | Detail |
 | :--- | :--- |
 | OS | Linux `amd64` if you use `scripts/install_onnx.sh`. Elsewhere, install ONNX Runtime yourself. |
-| Go | **1.26.5** |
+| Go | **1.26+** |
 | Tools | `git`; `curl`, `tar`, and `sh` for the install script |
 | Network | Reach Telegram, or set SOCKS5 in `TELEGRAM_PROXY_ADDR` |
 | Credentials | `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` from [my.telegram.org](https://my.telegram.org) |
